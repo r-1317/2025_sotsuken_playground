@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Job Shop Scheduling Visualizer</title>
+  <style>
+    :root{
+      /* Light theme */
+      --bg:#f6f7fb;
+      --panel:#ffffff;
+      --panel2:#f3f5f9;
+      --text:#0f172a;   /* slate-900 */
+      --muted:#475569;  /* slate-600 */
+      --accent:#2563eb; /* blue-600 */
+      --danger:#b91c1c; /* red-700 */
+      --ok:#15803d;     /* green-700 */
+      --line:#d5dbe6;
+      --shadow: 0 8px 24px rgba(15,23,42,.10);
+      --radius:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    body{
+      margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    }
+    header{
+      padding:16px 18px; border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(246,247,251,.92));
+      position:sticky; top:0; z-index:10;
+      backdrop-filter: blur(8px);
+    }
+    header h1{ margin:0; font-size:18px; font-weight:700; letter-spacing:.2px;}
+    header .sub{ color:var(--muted); font-size:12px; margin-top:6px; }
+
+    .wrap{
+      display:grid;
+      grid-template-columns: 520px 1fr;
+      gap:14px;
+      padding:14px;
+    }
+    .card{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:12px 12px 10px 12px;
+      border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px;
+      background:rgba(15,23,42,.02);
+    }
+    .card .hd .title{
+      font-weight:700; font-size:13px;
+    }
+    .card .bd{ padding:12px; }
+
+    textarea{
+      width:100%;
+      box-sizing:border-box;
+      min-height:220px;
+      resize:vertical;
+      background:var(--panel2);
+      border:1px solid var(--line);
+      border-radius:12px;
+      color:var(--text);
+      font-family:var(--mono);
+      font-size:12px;
+      padding:10px;
+      line-height:1.35;
+      outline:none;
+    }
+    textarea:focus{
+      border-color: rgba(37,99,235,.55);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.14);
+      background:#ffffff;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+
+    .btns{
+      display:flex; flex-wrap:wrap; gap:8px;
+      align-items:center;
+    }
+    button, .filebtn{
+      background:#ffffff;
+      color:var(--text);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:8px 10px;
+      font-size:12px;
+      cursor:pointer;
+      transition: transform .05s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+      user-select:none;
+    }
+    button:hover, .filebtn:hover{
+      border-color: rgba(37,99,235,.45);
+      background:rgba(37,99,235,.06);
+      box-shadow: 0 2px 10px rgba(37,99,235,.10);
+    }
+    button:active{ transform: translateY(1px); }
+
+    .filebtn{ display:inline-flex; align-items:center; gap:8px; }
+    input[type="file"]{ display:none; }
+
+    .row{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    }
+    .row label{
+      font-size:12px; color:var(--muted);
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .row input[type="number"], .row input[type="text"], .row input[type="range"]{
+      accent-color: var(--accent);
+    }
+    .row input[type="number"], .row input[type="text"]{
+      width:92px;
+      padding:7px 9px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:var(--panel2);
+      color:var(--text);
+      font-family:var(--mono);
+      font-size:12px;
+      outline:none;
+    }
+    .row input[type="number"]:focus, .row input[type="text"]:focus{
+      border-color: rgba(37,99,235,.55);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.14);
+      background:#ffffff;
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap:10px;
+    }
+    .stat{
+      padding:10px;
+      background:rgba(15,23,42,.02);
+      border:1px solid var(--line);
+      border-radius:12px;
+    }
+    .stat .k{ font-size:11px; color:var(--muted); }
+    .stat .v{ font-family:var(--mono); margin-top:6px; font-size:13px; }
+    .stat .v.ok{ color:var(--ok); }
+    .stat .v.bad{ color:var(--danger); }
+
+    .errors{
+      margin-top:10px;
+      padding:10px;
+      background:rgba(185,28,28,.06);
+      border:1px solid rgba(185,28,28,.28);
+      border-radius:12px;
+      font-family:var(--mono);
+      font-size:12px;
+      white-space:pre-wrap;
+      color:#7f1d1d;
+      display:none;
+    }
+    .hint{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+    }
+
+    .chartWrap{
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#ffffff;
+    }
+
+    .tooltip{
+      position:fixed;
+      pointer-events:none;
+      z-index:999;
+      background:rgba(255,255,255,.96);
+      border:1px solid rgba(15,23,42,.18);
+      border-radius:12px;
+      padding:10px 10px;
+      color:var(--text);
+      box-shadow:var(--shadow);
+      font-family:var(--mono);
+      font-size:12px;
+      max-width: 420px;
+      display:none;
+      white-space:pre;
+    }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 9px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(15,23,42,.02);
+      color:var(--muted);
+      font-size:12px;
+      font-family:var(--mono);
+    }
+
+    @media (max-width: 1100px){
+      .wrap{ grid-template-columns: 1fr; }
+      .stats{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Job Shop Scheduling Visualizer</h1>
+  <div class="sub">入力＋機械順序（あなたの出力）から、最早開始スケジューリングでガントチャート・メイクスパン・スコアを表示します。</div>
+</header>
+
+<div class="wrap">
+  <!-- Left: input/output -->
+  <section class="card">
+    <div class="hd">
+      <div class="title">入力 / 出力</div>
+      <div class="btns">
+        <button id="btnVisualize">可視化</button>
+        <button id="btnGreedy">貪欲で出力生成</button>
+      </div>
+    </div>
+    <div class="bd">
+      <div class="row" style="margin-bottom:10px;">
+        <label>J <input id="cfgJ" type="number" min="1" value="50"></label>
+        <label>M <input id="cfgM" type="number" min="1" value="20"></label>
+        <label>seed <input id="cfgSeed" type="text" value="1"></label>
+        <button id="btnRandom">ランダム生成</button>
+
+        <label class="filebtn" for="fileInputIn">入力ファイル読込</label>
+        <input id="fileInputIn" type="file" accept=".txt,.in,.dat"/>
+        <label class="filebtn" for="fileInputOut">出力ファイル読込</label>
+        <input id="fileInputOut" type="file" accept=".txt,.out"/>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <div class="pill">Input</div>
+          <textarea id="taInput" spellcheck="false" placeholder="ここに入力を貼り付け（J M, a行列, p行列）"></textarea>
+        </div>
+        <div>
+          <div class="pill">Output (machine orders)</div>
+          <textarea id="taOutput" spellcheck="false" placeholder="ここに出力（M行）を貼り付け"></textarea>
+        </div>
+      </div>
+
+      <div class="hint">
+        - 「貪欲で出力生成」は、常に可行な機械順序を作る補助機能です（スコア最適化ではありません）。<br/>
+        - 出力が不正・欠落している場合はエラーを表示し、スケジュールは計算しません。
+      </div>
+    </div>
+  </section>
+
+  <!-- Right: stats + chart -->
+  <section class="card">
+    <div class="hd">
+      <div class="title">結果</div>
+      <div class="row" style="gap:12px;">
+        <label>Zoom <input id="zoom" type="range" min="0.4" max="3.0" step="0.05" value="1.0"></label>
+        <span class="pill" id="pillInfo">—</span>
+        <button id="btnSaveSvg">SVG保存</button>
+      </div>
+    </div>
+    <div class="bd">
+      <div class="stats" id="stats">
+        <div class="stat"><div class="k">J</div><div class="v" id="stJ">—</div></div>
+        <div class="stat"><div class="k">M</div><div class="v" id="stM">—</div></div>
+        <div class="stat"><div class="k">Cmax</div><div class="v" id="stC">—</div></div>
+        <div class="stat"><div class="k">Score</div><div class="v" id="stScore">—</div></div>
+
+        <div class="stat"><div class="k">LB_job</div><div class="v" id="stLBJ">—</div></div>
+        <div class="stat"><div class="k">LB_mac</div><div class="v" id="stLBM">—</div></div>
+        <div class="stat"><div class="k">LB</div><div class="v" id="stLB">—</div></div>
+        <div class="stat"><div class="k">Validity</div><div class="v" id="stValid">—</div></div>
+      </div>
+
+      <div class="errors" id="errBox"></div>
+
+      <div style="margin-top:12px;">
+        <div class="pill">Machine Gantt</div>
+        <div class="chartWrap" id="chartWrap" style="margin-top:10px;">
+          <div id="chart"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+(function(){
+  const taInput = document.getElementById('taInput');
+  const taOutput = document.getElementById('taOutput');
+  const errBox = document.getElementById('errBox');
+  const chartDiv = document.getElementById('chart');
+  const zoomEl = document.getElementById('zoom');
+  const pillInfo = document.getElementById('pillInfo');
+
+  const stJ = document.getElementById('stJ');
+  const stM = document.getElementById('stM');
+  const stC = document.getElementById('stC');
+  const stScore = document.getElementById('stScore');
+  const stLBJ = document.getElementById('stLBJ');
+  const stLBM = document.getElementById('stLBM');
+  const stLB = document.getElementById('stLB');
+  const stValid = document.getElementById('stValid');
+
+  const cfgJ = document.getElementById('cfgJ');
+  const cfgM = document.getElementById('cfgM');
+  const cfgSeed = document.getElementById('cfgSeed');
+
+  const tooltip = document.getElementById('tooltip');
+
+  let lastRender = null;
+
+  function showErrors(lines){
+    if(!lines || lines.length === 0){
+      errBox.style.display = 'none';
+      errBox.textContent = '';
+      return;
+    }
+    errBox.style.display = 'block';
+    errBox.textContent = lines.join('\n');
+  }
+
+  function parseInts(text){
+    const m = text.match(/-?\d+/g);
+    if(!m) return [];
+    return m.map(x => Number(x));
+  }
+
+  function parseInstance(inputText){
+    const nums = parseInts(inputText);
+    const errors = [];
+    if(nums.length < 2){
+      errors.push('入力: 先頭に J M が必要です。');
+      return { ok:false, errors };
+    }
+    const J = nums[0], M = nums[1];
+    if(!(Number.isInteger(J) && Number.isInteger(M) && J>0 && M>0)){
+      errors.push(`入力: J,M が不正です (J=${J}, M=${M}).`);
+      return { ok:false, errors };
+    }
+    const need = 2 + J*M + J*M;
+    if(nums.length < need){
+      errors.push(`入力: 数が足りません。必要 ${need} 個以上 / 実際 ${nums.length} 個。`);
+      return { ok:false, errors };
+    }
+    let idx = 2;
+    const a = Array.from({length:J}, ()=> Array(M).fill(0));
+    const p = Array.from({length:J}, ()=> Array(M).fill(0));
+    for(let j=0;j<J;j++){
+      for(let k=0;k<M;k++){
+        a[j][k] = nums[idx++];
+      }
+    }
+    for(let j=0;j<J;j++){
+      for(let k=0;k<M;k++){
+        p[j][k] = nums[idx++];
+      }
+    }
+
+    for(let j=0;j<J;j++){
+      for(let k=0;k<M;k++){
+        const am = a[j][k];
+        const pj = p[j][k];
+        if(!Number.isInteger(am) || am<0 || am>=M){
+          errors.push(`入力: a[${j}][${k}]=${am} が範囲外 (0..${M-1}).`);
+          if(errors.length>30) break;
+        }
+        if(!Number.isFinite(pj) || pj<=0){
+          errors.push(`入力: p[${j}][${k}]=${pj} が不正（正の数が必要）。`);
+          if(errors.length>30) break;
+        }
+      }
+      if(errors.length>30) break;
+      const seen = new Array(M).fill(false);
+      let permOk = true;
+      for(let k=0;k<M;k++){
+        const am = a[j][k];
+        if(am>=0 && am<M){
+          if(seen[am]) permOk = false;
+          seen[am] = true;
+        }
+      }
+      if(!permOk){
+        errors.push(`入力: ジョブ ${j} の a[j,*] が置換ではありません（同一機械が複数回）。`);
+      }
+    }
+
+    return { ok: errors.length===0, errors, J, M, a, p };
+  }
+
+  function buildMachineSets(J,M,a){
+    const S = Array.from({length:M}, ()=>[]);
+    for(let j=0;j<J;j++){
+      for(let k=0;k<M;k++){
+        const m = a[j][k];
+        if(0<=m && m<M) S[m].push([j,k]);
+      }
+    }
+    return S;
+  }
+
+  function parseOutput(outputText, inst){
+    const {J,M,a} = inst;
+    const errors = [];
+
+    const Sm = buildMachineSets(J,M,a);
+    const expectedCount = Sm.map(x => x.length);
+
+    const linesRaw = outputText.replace(/\r/g,'').trimEnd().split('\n');
+    const lines = (outputText.trim().length===0) ? [] : linesRaw;
+
+    const seen = Array.from({length:J}, ()=> Array(M).fill(false));
+    const machineSeq = Array.from({length:M}, ()=>[]);
+    const nodeId = (j,k)=> j*M + k;
+
+    for(let m=0;m<M;m++){
+      const line = (m < lines.length) ? lines[m] : '';
+      const nums = parseInts(line);
+      if(nums.length % 2 !== 0){
+        errors.push(`出力: 機械 ${m} 行の整数個数が奇数です（j k のペアになっていません）。`);
+        continue;
+      }
+      for(let t=0;t<nums.length;t+=2){
+        const j = nums[t], k = nums[t+1];
+        if(!Number.isInteger(j) || !Number.isInteger(k)){
+          errors.push(`出力: 機械 ${m} 行に非整数が含まれます。`);
+          continue;
+        }
+        if(j<0 || j>=J || k<0 || k>=M){
+          errors.push(`出力: 機械 ${m} 行の (j,k)=(${j},${k}) が範囲外です。`);
+          continue;
+        }
+        if(a[j][k] !== m){
+          errors.push(`出力: 機械 ${m} 行に (j,k)=(${j},${k}) が含まれていますが、所属機械は a[j][k]=${a[j][k]} です。`);
+          continue;
+        }
+        if(seen[j][k]){
+          errors.push(`出力: 工程 (${j},${k}) が複数回出力されています。`);
+          continue;
+        }
+        seen[j][k] = true;
+        machineSeq[m].push(nodeId(j,k));
+      }
+      if(machineSeq[m].length !== expectedCount[m]){
+        errors.push(`出力: 機械 ${m} の工程数が不一致です。期待 ${expectedCount[m]} / 実際 ${machineSeq[m].length}`);
+      }
+    }
+
+    let missing = 0;
+    for(let j=0;j<J;j++) for(let k=0;k<M;k++) if(!seen[j][k]) missing++;
+    if(missing>0) errors.push(`出力: 未出力の工程が ${missing} 個あります。`);
+
+    return { ok: errors.length===0, errors, machineSeq, expectedCount };
+  }
+
+  function computeBounds(inst){
+    const {J,M,a,p} = inst;
+    let LB_job = 0;
+    for(let j=0;j<J;j++){
+      let s=0; for(let k=0;k<M;k++) s += p[j][k];
+      LB_job = Math.max(LB_job, s);
+    }
+    let LB_mac = 0;
+    const macSum = new Array(M).fill(0);
+    for(let j=0;j<J;j++) for(let k=0;k<M;k++){
+      const m = a[j][k];
+      if(0<=m && m<M) macSum[m] += p[j][k];
+    }
+    for(let m=0;m<M;m++) LB_mac = Math.max(LB_mac, macSum[m]);
+    const LB = Math.max(LB_job, LB_mac);
+    return {LB_job, LB_mac, LB, macSum};
+  }
+
+  function scheduleEarliest(inst, machineSeq){
+    const {J,M,a,p} = inst;
+    const N = J*M;
+
+    // processing time (integer)
+    const proc = new Array(N);
+    for(let j=0;j<J;j++) for(let k=0;k<M;k++) proc[j*M+k] = p[j][k] | 0;
+
+    // Build precedence graph: u -> v means v starts after u ends
+    const adj = Array.from({length:N}, ()=>[]);
+    const indeg = new Array(N).fill(0);
+
+    // Job precedence edges
+    for(let j=0;j<J;j++){
+      for(let k=1;k<M;k++){
+        const u = j*M + (k-1);
+        const v = j*M + k;
+        adj[u].push(v);
+        indeg[v]++;
+      }
+    }
+
+    // Machine order edges
+    for(let m=0;m<M;m++){
+      const seq = machineSeq[m] || [];
+      for(let t=1;t<seq.length;t++){
+        const u = seq[t-1];
+        const v = seq[t];
+        adj[u].push(v);
+        indeg[v]++;
+      }
+    }
+
+    // Kahn's algorithm + longest path DP on DAG
+    // dist[v] = earliest start time of v (integer)
+    const dist = new Array(N).fill(0);
+    const pred = new Array(N).fill(-1);
+
+    const q = [];
+    for(let i=0;i<N;i++) if(indeg[i]===0) q.push(i);
+
+    let head = 0, cnt = 0;
+    while(head < q.length){
+      const u = q[head++]; cnt++;
+
+      const base = dist[u] + proc[u]; // earliest end time of u (integer)
+      for(const v of adj[u]){
+        if(base > dist[v]){
+          dist[v] = base;
+          pred[v] = u;
+        }
+        indeg[v]--;
+        if(indeg[v]===0) q.push(v);
+      }
+    }
+
+    if(cnt !== N){
+      return { ok:false, errors:[`順序制約グラフにサイクルがあります（可行スケジュールが存在しません）。処理順序を見直してください。`]};
+    }
+
+    const start = dist;            // integer
+    const end = new Array(N);      // integer
+    let Cmax = 0;
+    let last = 0;
+
+    for(let i=0;i<N;i++){
+      end[i] = start[i] + proc[i];
+      if(end[i] > Cmax){
+        Cmax = end[i];
+        last = i;
+      }
+    }
+
+    // One critical path reconstruction
+    const critical = new Set();
+    let cur = last;
+    while(cur !== -1){
+      critical.add(cur);
+      cur = pred[cur];
+    }
+
+    const meta = new Array(N);
+    for(let j=0;j<J;j++) for(let k=0;k<M;k++){
+      const id = j*M+k;
+      meta[id] = {j,k,m:a[j][k], p:proc[id]};
+    }
+
+    return { ok:true, start, end, Cmax, critical, meta };
+  }
+
+
+  function hslColorForJob(j){
+    const h = (j * 137.508) % 360;
+    const s = 62;
+    const l = 55;
+    return `hsl(${h.toFixed(1)} ${s}% ${l}%)`;
+  }
+
+  function niceStep(target){
+    const pow = Math.pow(10, Math.floor(Math.log10(target)));
+    const mult = [1,2,5,10];
+    for(const m of mult) if(m*pow >= target) return m*pow;
+    return 10*pow;
+  }
+
+  function clearTooltip(){ tooltip.style.display = 'none'; }
+
+  function setTooltip(x,y,text){
+    tooltip.style.display = 'block';
+    tooltip.textContent = text;
+    const pad = 14;
+    let left = x + 14, top = y + 14;
+    const rect = tooltip.getBoundingClientRect();
+    if(left + rect.width + pad > window.innerWidth) left = x - rect.width - 14;
+    if(top + rect.height + pad > window.innerHeight) top = y - rect.height - 14;
+    tooltip.style.left = `${Math.max(6,left)}px`;
+    tooltip.style.top  = `${Math.max(6,top)}px`;
+  }
+
+  function renderGantt(inst, out, sch, zoom){
+    const {M} = inst;
+    const {start,end,Cmax,critical,meta} = sch;
+
+    const leftMargin = 78;
+    const rightMargin = 20;
+    const topMargin = 34;
+    const bottomMargin = 32;
+    const rowH = 22;
+    const rowGap = 10;
+    const axisGap = 10;
+
+    const baseChartW = 1200;
+    const pxPerTime = (baseChartW / Math.max(Cmax,1)) * zoom;
+
+    const width = Math.ceil(leftMargin + Cmax*pxPerTime + rightMargin);
+    const height = Math.ceil(topMargin + M*(rowH + rowGap) + axisGap + bottomMargin);
+
+    chartDiv.innerHTML = '';
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.style.display = 'block';
+
+    const bg = document.createElementNS(svgNS,'rect');
+    bg.setAttribute('x',0); bg.setAttribute('y',0);
+    bg.setAttribute('width',width); bg.setAttribute('height',height);
+    bg.setAttribute('fill','#ffffff');
+    svg.appendChild(bg);
+
+    const title = document.createElementNS(svgNS,'text');
+    title.setAttribute('x', 12);
+    title.setAttribute('y', 20);
+    title.setAttribute('fill', 'rgba(15,23,42,.85)');
+    title.setAttribute('font-size','12');
+    title.setAttribute('font-family', 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace');
+    title.textContent = `Cmax=${Cmax}  (zoom=${zoom.toFixed(2)})`;  // 変更
+    svg.appendChild(title);
+
+    const tickTarget = Cmax / 10;
+    const step = niceStep(Math.max(1, tickTarget));
+    const axisY = topMargin + M*(rowH+rowGap) + 4;
+
+    for(let t=0; t<=Cmax+1e-9; t+=step){
+      const x = leftMargin + t*pxPerTime;
+      const line = document.createElementNS(svgNS,'line');
+      line.setAttribute('x1',x); line.setAttribute('x2',x);
+      line.setAttribute('y1',topMargin-6); line.setAttribute('y2',axisY+14);
+      line.setAttribute('stroke','rgba(71,85,105,.22)');
+      line.setAttribute('stroke-width','1');
+      svg.appendChild(line);
+
+      const tx = document.createElementNS(svgNS,'text');
+      tx.setAttribute('x', x+2);
+      tx.setAttribute('y', axisY+24);
+      tx.setAttribute('fill','rgba(71,85,105,.92)');
+      tx.setAttribute('font-size','11');
+      tx.setAttribute('font-family','ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace');
+      tx.textContent = `${Math.round(t)}`;
+      svg.appendChild(tx);
+    }
+
+    for(let m=0;m<M;m++){
+      const y = topMargin + m*(rowH+rowGap);
+
+      const sep = document.createElementNS(svgNS,'line');
+      sep.setAttribute('x1', 10);
+      sep.setAttribute('x2', width-10);
+      sep.setAttribute('y1', y + rowH + rowGap/2);
+      sep.setAttribute('y2', y + rowH + rowGap/2);
+      sep.setAttribute('stroke','rgba(213,219,230,.95)');
+      sep.setAttribute('stroke-width','1');
+      svg.appendChild(sep);
+
+      const lab = document.createElementNS(svgNS,'text');
+      lab.setAttribute('x', 12);
+      lab.setAttribute('y', y + rowH - 6);
+      lab.setAttribute('fill', 'rgba(15,23,42,.85)');
+      lab.setAttribute('font-size','12');
+      lab.setAttribute('font-family','ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace');
+      lab.textContent = `M${m}`;
+      svg.appendChild(lab);
+    }
+
+    const g = document.createElementNS(svgNS,'g');
+    svg.appendChild(g);
+
+    let stickyJob = null;
+    function applyJobHighlight(job){
+      const nodes = svg.querySelectorAll('[data-job]');
+      nodes.forEach(el=>{
+        const j = Number(el.getAttribute('data-job'));
+        if(stickyJob === null){
+          el.setAttribute('opacity', j===job ? '1.0' : '0.20');
+        }else{
+          el.setAttribute('opacity', j===stickyJob ? '1.0' : '0.20');
+        }
+      });
+    }
+    function clearJobHighlight(){
+      const nodes = svg.querySelectorAll('[data-job]');
+      nodes.forEach(el=> el.setAttribute('opacity','1.0'));
+    }
+
+    for(let m=0;m<M;m++){
+      const seq = out.machineSeq[m];
+      const y = topMargin + m*(rowH+rowGap);
+      for(const id of seq){
+        const info = meta[id];
+        const s = start[id];
+        const e = end[id];
+        const x = leftMargin + s*pxPerTime;
+        const w = Math.max(0.8, (e-s)*pxPerTime);
+
+        const rect = document.createElementNS(svgNS,'rect');
+        rect.setAttribute('x', x);
+        rect.setAttribute('y', y);
+        rect.setAttribute('width', w);
+        rect.setAttribute('height', rowH);
+        rect.setAttribute('rx', 4);
+        rect.setAttribute('fill', hslColorForJob(info.j));
+        rect.setAttribute('stroke', critical.has(id) ? 'rgba(15,23,42,.85)' : 'rgba(15,23,42,.25)');
+        rect.setAttribute('stroke-width', critical.has(id) ? '2' : '1');
+        rect.setAttribute('data-job', String(info.j));
+        rect.setAttribute('data-id', String(id));
+        rect.style.cursor = 'pointer';
+
+        rect.addEventListener('mousemove', (ev)=>{
+          const txt =
+            `op=(${info.j},${info.k})  machine=${info.m}\n`+
+            `p=${info.p}\n`+
+            `start=${s}  end=${e}`;
+          setTooltip(ev.clientX, ev.clientY, txt);
+        });
+        rect.addEventListener('mouseleave', ()=>{
+          clearTooltip();
+          if(stickyJob === null) clearJobHighlight();
+        });
+        rect.addEventListener('mouseenter', ()=>{
+          if(stickyJob === null) applyJobHighlight(info.j);
+        });
+        rect.addEventListener('click', ()=>{
+          if(stickyJob === info.j){
+            stickyJob = null;
+            clearJobHighlight();
+          }else{
+            stickyJob = info.j;
+            applyJobHighlight(info.j);
+          }
+        });
+
+        g.appendChild(rect);
+
+        if(w >= 26){
+          const t = document.createElementNS(svgNS,'text');
+          t.setAttribute('x', x + 4);
+          t.setAttribute('y', y + 15);
+          t.setAttribute('fill', 'rgba(15,23,42,.85)');
+          t.setAttribute('font-size', '11');
+          t.setAttribute('font-family', 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace');
+          t.textContent = `J${info.j}`;
+          g.appendChild(t);
+        }
+      }
+    }
+
+    svg.addEventListener('mouseleave', ()=>{
+      clearTooltip();
+      if(stickyJob === null) clearJobHighlight();
+    });
+
+    chartDiv.appendChild(svg);
+    lastRender = { svg, inst, out, sch, zoom, width, height };
+  }
+
+  function updateStats(inst, bounds, sch, validOk){
+    stJ.textContent = inst ? String(inst.J) : '—';
+    stM.textContent = inst ? String(inst.M) : '—';
+
+    stLBJ.textContent = bounds ? String(bounds.LB_job) : '—';
+    stLBM.textContent = bounds ? String(bounds.LB_mac) : '—';
+    stLB.textContent  = bounds ? String(bounds.LB) : '—';
+
+    if(!sch){
+      stC.textContent = '—';
+      stScore.textContent = '—';
+      pillInfo.textContent = '—';
+      stValid.textContent = validOk ? 'OK' : 'NG';
+      stValid.className = 'v ' + (validOk ? 'ok' : 'bad');
+      return;
+    }
+
+    stC.textContent = String(sch.Cmax);  // 変更
+    const score = Math.round(1e6 * bounds.LB / sch.Cmax);
+    stScore.textContent = String(score);
+
+    stValid.textContent = validOk ? 'OK' : 'NG';
+    stValid.className = 'v ' + (validOk ? 'ok' : 'bad');
+
+    pillInfo.textContent = `LB=${bounds.LB} / Cmax=${sch.Cmax} / Score=${score}`;  // 変更
+  }
+
+  function visualize(){
+    const inst = parseInstance(taInput.value);
+    if(!inst.ok){
+      showErrors(inst.errors);
+      updateStats(inst.ok ? inst : null, null, null, false);
+      chartDiv.innerHTML = '';
+      return;
+    }
+
+    const out = parseOutput(taOutput.value, inst);
+    if(!out.ok){
+      showErrors(out.errors);
+      const bounds = computeBounds(inst);
+      updateStats(inst, bounds, null, false);
+      chartDiv.innerHTML = '';
+      return;
+    }
+
+    const sch = scheduleEarliest(inst, out.machineSeq);
+    if(!sch.ok){
+      showErrors(sch.errors);
+      const bounds = computeBounds(inst);
+      updateStats(inst, bounds, null, false);
+      chartDiv.innerHTML = '';
+      return;
+    }
+
+    showErrors([]);
+    const bounds = computeBounds(inst);
+    updateStats(inst, bounds, sch, true);
+
+    renderGantt(inst, out, sch, Number(zoomEl.value));
+  }
+
+  function greedyGenerateOutput(inst){
+    const {J,M,a,p} = inst;
+    const nextK = new Array(J).fill(0);
+    const jobReady = new Array(J).fill(0);
+    const macReady = new Array(M).fill(0);
+    const orders = Array.from({length:M}, ()=>[]);
+
+    const total = J*M;
+    for(let step=0; step<total; step++){
+      let bestJ = -1, bestK = -1, bestM = -1;
+      let bestEST = Infinity, bestP = Infinity;
+
+      for(let j=0;j<J;j++){
+        const k = nextK[j];
+        if(k>=M) continue;
+        const m = a[j][k];
+        const est = Math.max(jobReady[j], macReady[m]);
+        const pj = p[j][k];
+
+        if(est < bestEST - 1e-12 ||
+          (Math.abs(est-bestEST) <= 1e-12 && pj < bestP) ||
+          (Math.abs(est-bestEST) <= 1e-12 && pj === bestP && j < bestJ)
+        ){
+          bestEST = est; bestP = pj;
+          bestJ = j; bestK = k; bestM = m;
+        }
+      }
+
+      const s = bestEST;
+      const e = s + p[bestJ][bestK];
+      jobReady[bestJ] = e;
+      macReady[bestM] = e;
+      orders[bestM].push([bestJ, bestK]);
+      nextK[bestJ]++;
+    }
+
+    const lines = [];
+    for(let m=0;m<M;m++){
+      const parts = [];
+      for(const [j,k] of orders[m]) parts.push(String(j), String(k));
+      lines.push(parts.join(' '));
+    }
+    return lines.join('\n');
+  }
+
+  function makeRng(seedStr){
+    let seed = 1;
+    if(seedStr && seedStr.trim().length){
+      const m = seedStr.trim().match(/-?\d+/);
+      if(m) seed = (Number(m[0])|0) || 1;
+      else seed = 1;
+    }else{
+      seed = (Date.now()|0) ^ (Math.random()*0x7fffffff|0);
+    }
+    let x = seed|0;
+    return function(){
+      x ^= (x << 13);
+      x ^= (x >>> 17);
+      x ^= (x << 5);
+      return ((x >>> 0) / 4294967296);
+    };
+  }
+
+  function randomPermutation(n, rng){
+    const arr = Array.from({length:n}, (_,i)=>i);
+    for(let i=n-1;i>0;i--){
+      const j = Math.floor(rng()*(i+1));
+      const tmp = arr[i]; arr[i]=arr[j]; arr[j]=tmp;
+    }
+    return arr;
+  }
+
+  function generateRandomInstance(){
+    const J = Math.max(1, Number(cfgJ.value||50));
+    const M = Math.max(1, Number(cfgM.value||20));
+    const rng = makeRng(cfgSeed.value);
+
+    const a = [];
+    const p = [];
+    for(let j=0;j<J;j++) a.push(randomPermutation(M, rng));
+    for(let j=0;j<J;j++){
+      const row = [];
+      for(let k=0;k<M;k++) row.push(1 + Math.floor(rng()*100));
+      p.push(row);
+    }
+
+    const lines = [];
+    lines.push(`${J} ${M}`);
+    for(let j=0;j<J;j++) lines.push(a[j].join(' '));
+    for(let j=0;j<J;j++) lines.push(p[j].join(' '));
+    taInput.value = lines.join('\n');
+
+    const inst = {ok:true, J, M, a, p};
+    taOutput.value = greedyGenerateOutput(inst);
+  }
+
+  document.getElementById('btnVisualize').addEventListener('click', visualize);
+
+  document.getElementById('btnGreedy').addEventListener('click', ()=>{
+    const inst = parseInstance(taInput.value);
+    if(!inst.ok){
+      showErrors(inst.errors);
+      chartDiv.innerHTML = '';
+      return;
+    }
+    taOutput.value = greedyGenerateOutput(inst);
+    visualize();
+  });
+
+  document.getElementById('btnRandom').addEventListener('click', ()=>{
+    generateRandomInstance();
+    visualize();
+  });
+
+  zoomEl.addEventListener('input', ()=>{
+    if(lastRender){
+      renderGantt(lastRender.inst, lastRender.out, lastRender.sch, Number(zoomEl.value));
+    }
+  });
+
+  function bindFileInput(fileEl, targetTextarea){
+    fileEl.addEventListener('change', ()=>{
+      const f = fileEl.files && fileEl.files[0];
+      if(!f) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{ targetTextarea.value = String(reader.result || ''); };
+      reader.readAsText(f);
+      fileEl.value = '';
+    });
+  }
+  bindFileInput(document.getElementById('fileInputIn'), taInput);
+  bindFileInput(document.getElementById('fileInputOut'), taOutput);
+
+  document.getElementById('btnSaveSvg').addEventListener('click', ()=>{
+    if(!lastRender || !lastRender.svg){
+      alert('SVGがまだ描画されていません。先に可視化してください。');
+      return;
+    }
+    const svg = lastRender.svg;
+    const xml = new XMLSerializer().serializeToString(svg);
+    const blob = new Blob([`<?xml version="1.0" encoding="UTF-8"?>\n` + xml], {type:'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'gantt.svg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  // initial example
+  taInput.value =
+`2 3
+0 2 1
+2 1 0
+5 4 3
+2 6 1`;
+  taOutput.value =
+`0 0 1 2
+0 2 1 1
+0 1 1 0`;
+
+  visualize();
+})();
+</script>
+</body>
+</html>
