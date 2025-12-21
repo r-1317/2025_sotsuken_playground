@@ -45,7 +45,7 @@ def main() -> None:
 
   os.makedirs(args.out, exist_ok=True)
 
-  for i in range(1, args.num + 1):
+  for i in range(args.num):
     rng = random.Random(args.seed + i)
     a, p = generate_case(rng, j=args.jobs, m=args.machines)
     file_path = os.path.join(args.out, f"{i:04}.txt")

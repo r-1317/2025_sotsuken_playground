@@ -1,13 +1,15 @@
-``` Python
-int(input())
-map(int, input().split())
-list(map(int, input().split()))
-[int(input()) for _ in range(NNN)]
-[list(map(int, input().split())) for _ in range(HHH)]
+# 自分のためのメモ
 
-(input())
-input().split()
-list(input().split())
-[(input()) for _ in range(NNN)]
-[list(input().split()) for _ in range(HHH)]
-```
+### scheduling.md
+- ジョブショップ・スケジューリング問題の文。
+- 出力形式が気持ち悪いが支障はない
+
+#### vis.html
+- ビジュアライザ。
+- 1がベースで、2がライトモード。3で整数での評価に修正
+
+#### greedy.py
+- 貪欲法で解く
+- 開始時刻、終了時刻。ジョブIDの順で優先度を決める
+- ビジュアライザの貪欲法と同じ挙動だと思う
+- sum_score: 366255
