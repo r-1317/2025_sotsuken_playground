@@ -15,27 +15,28 @@ else:
 
 ic.enable() if MyPC else None
 
-K = 300  # ビーム幅
+B = 100  # ビームの回数
 
 sys.setrecursionlimit(2000)  # 再帰上限を引き上げ
 
 start_time = time.time()
 
-# ビームサーチのノードを表すクラス
+# chokudaiサーチのノードを表すクラス
 class Node:
   def __init__(self, machine_available_time: list[int], job_available_time: list[int], next_operation_index: list[int]) -> None:
     self.machine_available_time = machine_available_time[:]
     self.job_available_time = job_available_time[:]
-    self.operation = []  # 今回のノードで追加されるオペレーション [job_id, operation_index]
     self.next_operation_index = next_operation_index[:]
+    self.operation = []  # 今回のノードで追加されるオペレーション [job_id, operation_index]
     self.step_tree_index = None  # ステップツリー内のインデックス
   
   def copy(self) -> 'Node':
     return Node(self.machine_available_time, self.job_available_time, self.next_operation_index)
   
-  def evaluate(self) -> int:  # スケジュールされた全工程の最大終了時刻を返す
+  def evaluate(self) -> int:  # C_maxを返す
     if not self.operation:
-      return float('inf')  # 初期ノードの場合は無限大を返す
+      return float('inf')
+    
 
     C_max =  max(self.job_available_time)
     return C_max
@@ -91,34 +92,35 @@ def main():
   # ジョブごとに次の工程のインデックスを管理するリスト
   next_operation_index = [0] * J
 
-  step_tree: List[Tuple[int, Tuple[int, int]]] = []  # (前のノードのindex, (ジョブID, 工程の番号))
-
+  # chokudaiサーチのノードリスト
+  chokudai_list = [[] for _ in range(J * M + 1)]  # 各層のノードを格納するリスト  各層はheapqで管理
   # ノードの初期化
   initial_node = Node(machine_available_time, job_available_time, next_operation_index)
-  beam = [initial_node]  # ビームリスト（ヒープ）
-  step_tree.append((-1, (-1, -1)))  # 初期ノードの親はなし
-  initial_node.step_tree_index = 0
+  chokudai_list[0].append(initial_node)
 
-  # ビームサーチでスケジューリングを行う
-  for _ in range(J * M):
-    next_beam = []  # 次のビームを格納するheapリスト
-    for node in beam:
+  step_tree: List[Tuple[int, Tuple[int, int]]] = []  # (前のノードのindex, (ジョブID, 工程の番号))
+  heapq.heappush(step_tree, (-1, (-1, -1)))  # 初期ノードの親はなし
+  initial_node.step_tree_index = 0  # ステップツリー内のインデックスを設定
+
+  # chokudaiサーチでスケジューリングを行う
+  for _ in range(B):  # B回ビームを繰り返す
+    for i in range(J * M):
+      next_index = i + 1
+      node = chokudai_list[i][0]
       candidates = node.next_jobs(J, M)
       for job_id in candidates:
         new_node = node.copy()
         new_node.schedule_job(job_id, a_list, p_list)
-        heapq.heappush(next_beam, new_node)  # ヒープに追加
+        heapq.heappush(chokudai_list[next_index], new_node)  # ヒープに追加
         step_tree.append((node.step_tree_index, (new_node.operation[0], new_node.operation[1])))  # ステップツリーに追加
         new_node.step_tree_index = len(step_tree) - 1  # ステップツリー内のインデックスを設定
-    
-    # heapからビーム幅Kで絞り込み
-    beam = []
-    for _ in range(min(K, len(next_beam))):
-      best_node = heapq.heappop(next_beam)
-      beam.append(best_node)
 
-  # 最良ノードを選択  # あとで修正
-  best_node = beam[0]
+  # 最後の層は訪問済みかを無視してソート
+  last_index = J * M
+  chokudai_list[last_index].sort(key=lambda n: n.evaluate())
+
+  # 最良ノードを選択
+  best_node = chokudai_list[last_index][0]
   job_available_time = best_node.job_available_time
   job_queue = []
   index = best_node.step_tree_index
