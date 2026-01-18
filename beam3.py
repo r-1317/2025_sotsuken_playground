@@ -15,7 +15,7 @@ else:
 
 ic.enable() if MyPC else None
 
-K = 300  # ビーム幅
+K = 100  # ビーム幅
 
 sys.setrecursionlimit(2000)  # 再帰上限を引き上げ
 

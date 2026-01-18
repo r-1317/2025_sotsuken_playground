@@ -106,7 +106,9 @@ def main():
   for _ in range(B):  # B回ビームを繰り返す
     for i in range(J * M):
       next_index = i + 1
-      node = chokudai_list[i][0]
+      if not chokudai_list[i]:  # 今回の層にノードがなければスキップ
+        continue
+      node = heapq.heappop(chokudai_list[i])  # 評価値の最小ノードを取り出す
       candidates = node.next_jobs(J, M)
       for job_id in candidates:
         new_node = node.copy()
