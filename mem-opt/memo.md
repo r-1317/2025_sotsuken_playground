@@ -120,3 +120,22 @@ Total path length: 1346
 - 2026-02-07 11:26:27
 - https://atcoder.jp/contests/ahc059/submissions/73034545
 - 最大メモリ886716 KiB
+
+### 環境
+```
+OS: Linux Mint 22.3 x86_64 
+Kernel: 6.8.0-100-generic 
+Uptime: 3 hours, 48 mins 
+Packages: 3743 (dpkg), 19 (flatpak) 
+Shell: bash 5.2.21 
+Resolution: 5120x2880 
+DE: Cinnamon 6.6.6 
+WM: Mutter (Muffin) 
+WM Theme: Mint-Y-Dark (Mint-Y) 
+Theme: Mint-Y-Dark [GTK2/3] 
+Icons: Mint-Y [GTK2/3] 
+Terminal: gnome-terminal 
+CPU: AMD Ryzen 5 5600X (12) @ 3.700G 
+GPU: NVIDIA GeForce RTX 3070 
+Memory: 12059MiB / 32012MiB 
+```
