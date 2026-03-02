@@ -139,3 +139,39 @@ CPU: AMD Ryzen 5 5600X (12) @ 3.700G
 GPU: NVIDIA GeForce RTX 3070 
 Memory: 12059MiB / 32012MiB 
 ```
+
+## opt-2
+- 標準のsetを使う
+- `g++ a05-opt-2.cpp -O2 -std=c++23 -o a05-opt-2.out`
+```
+Total path length: 1346
+        Command being timed: "./a05-opt-2.out"
+        User time (seconds): 1.44
+        System time (seconds): 0.50
+        Percent of CPU this job got: 99%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.94
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 1087508
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 0
+        Minor (reclaiming a frame) page faults: 314405
+        Voluntary context switches: 1
+        Involuntary context switches: 9
+        Swaps: 0
+        File system inputs: 0
+        File system outputs: 16
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+```
+
+## 提出
+- 2026-03-02 17:37:03
+- https://atcoder.jp/contests/ahc059/submissions/73771395
+- 最大メモリ: 768600 KiB
+  - なんか減った
