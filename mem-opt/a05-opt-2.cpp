@@ -2,7 +2,7 @@
 using namespace std;
 
 static constexpr int N = 20;               // 固定
-static constexpr double TIME_LIMIT = 1.85;  // 秒
+static constexpr double DEFAULT_TIME_LIMIT = 1.85;  // 秒
 static constexpr int MAX_WIDTH = 1000;     // chokudai_level の最大幅
 
 struct Pos {
@@ -143,9 +143,42 @@ static int get_path_length(const vector<Pos>& path) {
   return length;
 }
 
-int main() {
+static void print_usage(const char* prog) {
+  cerr << "Usage: " << prog << " [TIME_LIMIT_SECONDS] [-t SECONDS|--time SECONDS|--time=SECONDS]\n";
+  cerr << "Default time limit: " << DEFAULT_TIME_LIMIT << " seconds\n";
+}
+
+int main(int argc, char** argv) {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
+
+  double time_limit = DEFAULT_TIME_LIMIT;
+  for (int argi = 1; argi < argc; ++argi) {
+    string a = argv[argi];
+    try {
+      if (a.rfind("--time=", 0) == 0) {
+        time_limit = stod(a.substr(7));
+      } else if (a == "--time" || a == "-t") {
+        if (argi + 1 >= argc) {
+          print_usage(argv[0]);
+          return 1;
+        }
+        time_limit = stod(string(argv[++argi]));
+      } else if (!a.empty() && a[0] != '-' && argi == 1) {
+        // 位置引数で TIME_LIMIT_SECONDS を受け取る（最小仕様）
+        time_limit = stod(a);
+      }
+    } catch (const std::exception&) {
+      cerr << "Invalid time limit argument: " << a << "\n";
+      print_usage(argv[0]);
+      return 1;
+    }
+  }
+  if (!(time_limit > 0.0)) {
+    cerr << "TIME_LIMIT_SECONDS must be > 0\n";
+    print_usage(argv[0]);
+    return 1;
+  }
 
   int Nin;
   cin >> Nin; // N=20 固定のため無視（Python と同じ）
@@ -231,7 +264,7 @@ int main() {
 
       // 時間制限チェック
       double elapsed = chrono::duration<double>(chrono::steady_clock::now() - start).count();
-      if (elapsed > TIME_LIMIT) {
+      if (elapsed > time_limit) {
         flag = false;
         break;
       }
